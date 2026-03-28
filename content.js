@@ -26,7 +26,6 @@
         cursor: pointer;
         transition: opacity 0.15s ease;
         white-space: nowrap;
-        text-decoration: none;
         vertical-align: middle;
         user-select: none;
       }
@@ -53,6 +52,7 @@
         display: inline-block;
         margin-left: 6px;
         vertical-align: middle;
+        flex-shrink: 0;
       }
     `;
     document.head.appendChild(style);
@@ -64,7 +64,6 @@
     const mode = document.documentElement.getAttribute("data-color-mode");
     if (mode === "dark") return "dark";
     if (mode === "light") return "light";
-    // 'auto' — defer to OS preference
     return window.matchMedia("(prefers-color-scheme: dark)").matches
       ? "dark"
       : "light";
@@ -73,30 +72,35 @@
   // ── Context extraction ────────────────────────────────────────────────────
 
   function getPRTitle() {
+    // Works on both legacy and React-based GitHub PR pages
     const el =
       document.querySelector("h1.gh-header-title .js-issue-title") ||
-      document.querySelector("h1.gh-header-title");
+      document.querySelector("h1.gh-header-title") ||
+      document.querySelector("[data-testid='pr-header-title']") ||
+      document.querySelector("h1");
     return el ? el.textContent.trim() : document.title;
   }
 
   function getPRDescription() {
-    // The PR description is always the first .comment-body in the timeline.
-    const el = document.querySelector(".timeline-comment .comment-body");
+    // New GitHub: first [comment-testid] in the page is the PR description
+    const el =
+      document.querySelector("[comment-testid]") ||
+      document.querySelector(".comment-body");
     return el ? el.innerText.trim() : "";
   }
 
-  function getDiffHunk(commentContainerEl) {
-    // Walk up to the nearest diff table — only present for inline diff comments.
-    const diffTable = commentContainerEl.closest(".diff-table");
+  function getDiffHunk(commentBodyEl) {
+    // Walk up through the React component tree to find the diff table.
+    // In GitHub's current DOM, inline review comments live inside a tr
+    // within a .diff-table.
+    const diffTable = commentBodyEl.closest(".diff-table");
     if (!diffTable) return "";
 
-    // The comment lives in a tr; collect code rows that precede it.
-    const commentRow = commentContainerEl.closest("tr");
+    const commentRow = commentBodyEl.closest("tr");
     const lines = [];
 
     for (const row of diffTable.querySelectorAll("tr")) {
       if (row === commentRow) break;
-      // Skip inline-comment rows (they contain review threads, not code).
       if (row.classList.contains("inline-comments")) continue;
 
       const codeCell = row.querySelector("td.blob-code");
@@ -112,7 +116,6 @@
       lines.push(prefix + inner.textContent);
     }
 
-    // Return at most the last 30 lines for brevity.
     return lines.slice(-30).join("\n");
   }
 
@@ -134,7 +137,7 @@
 
   // ── Button ────────────────────────────────────────────────────────────────
 
-  function createButton(commentEl) {
+  function createButton(commentBodyEl) {
     const btn = document.createElement("button");
     btn.className = BUTTON_CLASS;
     btn.setAttribute("data-theme", getTheme());
@@ -143,9 +146,8 @@
     btn.textContent = "Send to Agent";
 
     btn.addEventListener("click", () => {
-      const bodyEl = commentEl.querySelector(".comment-body");
-      const comment = bodyEl ? bodyEl.innerText.trim() : "";
-      const diff = getDiffHunk(commentEl);
+      const comment = commentBodyEl.innerText.trim();
+      const diff = getDiffHunk(commentBodyEl);
       const prompt = buildPrompt(
         getPRTitle(),
         getPRDescription(),
@@ -173,54 +175,59 @@
 
   // ── Injection ─────────────────────────────────────────────────────────────
 
-  // Selectors for comment containers that should receive the button.
-  // Order matters: more specific first so `.closest()` finds the right level.
-  const COMMENT_SELECTORS = [
-    ".review-comment", // inline diff review comments
-    ".timeline-comment", // PR description + general thread comments
-    ".inline-comment-form-container", // inline diff comment forms
-    ".js-inline-comments .comment", // comments inside js-inline-comments wrapper
-  ].join(", ");
+  function tryInject(commentBodyEl) {
+    if (commentBodyEl.hasAttribute(PROCESSED_ATTR)) return;
+    commentBodyEl.setAttribute(PROCESSED_ATTR, "1");
 
-  function tryInject(el) {
-    if (el.hasAttribute(PROCESSED_ATTR)) return;
-
-    const commentBody = el.querySelector(".comment-body");
-    if (!commentBody) return;
-
-    // Mark before any async work so repeated observer fires are no-ops.
-    el.setAttribute(PROCESSED_ATTR, "1");
-
-    const btn = createButton(el);
+    const btn = createButton(commentBodyEl);
     const wrap = document.createElement("span");
     wrap.className = WRAP_CLASS;
     wrap.appendChild(btn);
 
-    // Prefer attaching next to existing reaction/action buttons when present.
-    const toolbar =
-      el.querySelector(".comment-reactions") ||
-      el.querySelector(".comment-header-actions");
+    // New GitHub React UI: reactions toolbar sits in a sibling/cousin div.
+    // Walk up to the BodyHTMLContainer then look for the reactions toolbar.
+    const bodyContainer = commentBodyEl.parentElement;
+    const reactionsToolbar = bodyContainer
+      ? bodyContainer.querySelector('div[role="toolbar"][aria-label="Reactions"]')
+      : null;
 
-    if (toolbar) {
-      toolbar.appendChild(wrap);
-    } else {
-      // Fallback: insert immediately after the comment body.
-      commentBody.insertAdjacentElement("afterend", wrap);
+    if (reactionsToolbar) {
+      reactionsToolbar.appendChild(wrap);
+      return;
     }
+
+    // Legacy GitHub: comment-reactions bar
+    const legacyReactions = commentBodyEl
+      .closest(".js-comment, .review-comment, .timeline-comment, .comment")
+      ?.querySelector(".comment-reactions, .comment-header-actions");
+
+    if (legacyReactions) {
+      legacyReactions.appendChild(wrap);
+      return;
+    }
+
+    // Ultimate fallback: insert directly after the comment body element
+    commentBodyEl.insertAdjacentElement("afterend", wrap);
   }
 
   function injectAll() {
-    document.querySelectorAll(COMMENT_SELECTORS).forEach(tryInject);
+    // New GitHub React UI: comment bodies carry a [comment-testid] attribute
+    document
+      .querySelectorAll(`[comment-testid]:not([${PROCESSED_ATTR}])`)
+      .forEach(tryInject);
+
+    // Legacy GitHub: .comment-body class
+    document
+      .querySelectorAll(`.comment-body:not([${PROCESSED_ATTR}])`)
+      .forEach(tryInject);
   }
 
   // ── Init & SPA handling ───────────────────────────────────────────────────
 
-  // Debounce MutationObserver callbacks — GitHub emits many mutations at once.
   let pending = false;
   function scheduleInject() {
     if (pending) return;
     pending = true;
-    // Use requestIdleCallback when available, otherwise a short setTimeout.
     (window.requestIdleCallback || ((fn) => setTimeout(fn, 50)))(() => {
       injectAll();
       pending = false;
@@ -235,7 +242,6 @@
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  // GitHub uses Turbo (formerly pjax) for SPA navigation.
   document.addEventListener("turbo:load", init);
   document.addEventListener("turbo:render", injectAll);
   document.addEventListener("pjax:end", init);
