@@ -15,6 +15,10 @@ A Chrome extension that injects a **"Copy as prompt"** button into GitHub PR com
 3. Enable **Developer mode** (top right)
 4. Click **Load unpacked** and select the repo folder
 
+### Updating
+
+If you loaded the extension unpacked, pull the latest changes and click the reload icon (↺) next to the extension on `chrome://extensions`. No need to re-add it.
+
 ### Chrome Web Store
 
 Coming soon.
