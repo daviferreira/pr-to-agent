@@ -99,33 +99,43 @@
   }
 
   function getDiffHunk(commentBodyEl) {
-    // Walk up through the React component tree to find the diff table.
-    // In GitHub's current DOM, inline review comments live inside a tr
-    // within a .diff-table.
-    const diffTable = commentBodyEl.closest(".diff-table");
-    if (!diffTable) return "";
+    // GitHub's React diff: table[aria-label="Diff for: <filename>"]
+    // Each code row is tr.diff-line-row; the inline comment lives inside
+    // the same td as the commented line, not in a separate row.
+    const table = commentBodyEl.closest("table");
+    if (!table) return "";
+
+    // Filename from aria-label: "Diff for: path/to/file"
+    const ariaLabel = table.getAttribute("aria-label") || "";
+    const fileName = ariaLabel.startsWith("Diff for: ")
+      ? ariaLabel.slice("Diff for: ".length).trim()
+      : "";
 
     const commentRow = commentBodyEl.closest("tr");
     const lines = [];
 
-    for (const row of diffTable.querySelectorAll("tr")) {
-      if (row === commentRow) break;
-      if (row.classList.contains("inline-comments")) continue;
+    for (const row of table.querySelectorAll("tr.diff-line-row")) {
+      // Skip hunk-header rows (contain the @@ line, not code)
+      if (row.querySelector("td.diff-hunk-cell")) continue;
 
-      const codeCell = row.querySelector("td.blob-code");
-      if (!codeCell) continue;
+      const codeEl = row.querySelector("code.diff-text:not(.hunk)");
+      if (!codeEl) continue;
 
-      const inner = codeCell.querySelector(".blob-code-inner");
+      const inner = codeEl.querySelector(".diff-text-inner");
       if (!inner) continue;
 
       let prefix = " ";
-      if (codeCell.classList.contains("blob-code-addition")) prefix = "+";
-      else if (codeCell.classList.contains("blob-code-deletion")) prefix = "-";
+      if (codeEl.classList.contains("addition")) prefix = "+";
+      else if (codeEl.classList.contains("deletion")) prefix = "-";
 
       lines.push(prefix + inner.textContent);
+
+      // Include the commented-on line itself, then stop
+      if (row === commentRow || row.contains(commentBodyEl)) break;
     }
 
-    return lines.slice(-30).join("\n");
+    const code = lines.slice(-30).join("\n");
+    return fileName ? `File: ${fileName}\n${code}` : code;
   }
 
   // ── Prompt formatting ─────────────────────────────────────────────────────
