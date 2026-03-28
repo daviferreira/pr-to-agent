@@ -99,7 +99,19 @@
   }
 
   function getDiffHunk(commentBodyEl) {
-    const table = commentBodyEl.closest("table");
+    let table = commentBodyEl.closest("table");
+
+    // Conversation tab: diff table is a sibling cousin, not an ancestor.
+    // Walk up to the thread container and search downward.
+    if (!table) {
+      const threadContainer = commentBodyEl.closest(
+        "details, .review-thread-component, .js-resolvable-timeline-thread-container"
+      );
+      table = threadContainer?.querySelector(
+        "table[aria-label^=\"Diff for:\"], table.diff-table"
+      ) || null;
+    }
+
     if (!table) return "";
 
     // ── React (new) diff: table[aria-label="Diff for: <file>"] ───────────
@@ -131,7 +143,13 @@
     // Rows are plain tr; inline comments are in a separate tr.inline-comments.
     // Code cells: td.blob-code-addition/deletion/context + span.blob-code-inner.
     if (table.classList.contains("diff-table")) {
-      const fileName = table.closest(".file")?.getAttribute("data-tagsearch-path") || "";
+      const threadContainer = commentBodyEl.closest(
+        "details, .review-thread-component, .js-resolvable-timeline-thread-container"
+      );
+      const fileName =
+        table.closest(".file")?.getAttribute("data-tagsearch-path") ||
+        threadContainer?.querySelector("summary a")?.textContent.trim() ||
+        "";
       const commentRow = commentBodyEl.closest("tr.inline-comments");
       const lines = [];
 
