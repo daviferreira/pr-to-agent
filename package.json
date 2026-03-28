@@ -4,12 +4,14 @@
   "description": "Chrome extension that adds a \"Send to Agent\" button to GitHub PR comments, copying the comment, diff, and PR context as a formatted prompt to your clipboard.",
   "license": "MIT",
   "author": "",
-  "type": "commonjs",
-  "main": "content.js",
+  "type": "module",
   "scripts": {
-    "test": "prettier --check ."
+    "test": "eslint . && prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "eslint": "^9.39.4",
+    "globals": "^17.4.0",
     "prettier": "3.8.1"
   }
 }
