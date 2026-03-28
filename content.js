@@ -308,17 +308,19 @@
   function scheduleInject() {
     if (pending) return;
     pending = true;
-    (window.requestIdleCallback || ((fn) => setTimeout(fn, 50)))(() => {
+    // Use setTimeout(0) rather than requestIdleCallback — rIC can be delayed
+    // for seconds when the browser is busy rendering after SPA navigation.
+    setTimeout(() => {
       injectAll();
       pending = false;
-    });
+    }, 0);
   }
 
   // Run injectAll immediately, then retry at increasing intervals to catch
   // comments loaded lazily via <include-fragment> after turbo navigation.
   function injectWithRetries() {
     injectAll();
-    [300, 800, 2000].forEach((delay) => setTimeout(injectAll, delay));
+    [200, 500, 1000, 2500].forEach((delay) => setTimeout(injectAll, delay));
   }
 
   // Create the observer once — never re-create it on SPA navigation.
@@ -332,6 +334,7 @@
 
   document.addEventListener("turbo:load", injectWithRetries);
   document.addEventListener("turbo:render", injectWithRetries);
+  document.addEventListener("turbo:morph", injectWithRetries);
   document.addEventListener("pjax:end", injectWithRetries);
 
   if (document.readyState === "loading") {
