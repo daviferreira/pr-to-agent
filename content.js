@@ -236,6 +236,16 @@
 
   function tryInject(commentBodyEl) {
     if (commentBodyEl.hasAttribute(PROCESSED_ATTR)) return;
+
+    // Skip the PR description — it's the source, not a review comment.
+    // Legacy: lives inside div#pullrequest-{id}
+    if (commentBodyEl.closest("[id^=\"pullrequest-\"]")) return;
+    // React: the PR body is the first [comment-testid*="IC_"] on the page
+    if (
+      commentBodyEl.getAttribute("comment-testid")?.includes("IC_") &&
+      commentBodyEl === document.querySelector("[comment-testid*=\"IC_\"]")
+    ) return;
+
     commentBodyEl.setAttribute(PROCESSED_ATTR, "1");
 
     const btn = createButton(commentBodyEl);
