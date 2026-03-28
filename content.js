@@ -72,10 +72,11 @@
   // ── Context extraction ────────────────────────────────────────────────────
 
   function getPRTitle() {
-    // document.title is always: "PR title · Pull Request #N · owner/repo · GitHub"
-    const parts = document.title.split(" · ");
-    if (parts.length >= 2 && parts[1].startsWith("Pull Request")) {
-      return parts[0].trim();
+    // document.title format: "PR title by author · Pull Request #N · owner/repo · GitHub"
+    const firstSegment = document.title.split(" · ")[0] || "";
+    if (firstSegment) {
+      // Strip trailing " by {github-username}" (usernames: alphanumeric + hyphens)
+      return firstSegment.replace(/ by [a-zA-Z0-9-]{1,39}$/, "").trim();
     }
     // Fallback for legacy page structure
     const el =
