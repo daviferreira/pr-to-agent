@@ -150,7 +150,7 @@
     btn.setAttribute("data-theme", getTheme());
     btn.setAttribute("type", "button");
     btn.setAttribute("aria-label", "Copy PR comment context to clipboard");
-    btn.textContent = "Send to Agent";
+    btn.textContent = "Prompt for agents";
 
     btn.addEventListener("click", () => {
       const comment = commentBodyEl.innerText.trim();
@@ -168,7 +168,7 @@
           btn.textContent = "Copied!";
           btn.disabled = true;
           setTimeout(() => {
-            btn.textContent = "Send to Agent";
+            btn.textContent = "Prompt for agents";
             btn.disabled = false;
           }, 2000);
         })
