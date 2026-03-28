@@ -5,7 +5,7 @@
   "description": "Inject a Send to Agent button into GitHub PR comments to copy structured prompts to clipboard.",
   "content_scripts": [
     {
-      "matches": ["https://github.com/*/*/pull/*"],
+      "matches": ["https://github.com/*"],
       "js": ["content.js"],
       "run_at": "document_idle"
     }

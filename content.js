@@ -287,7 +287,12 @@
     commentBodyEl.insertAdjacentElement("afterend", wrap);
   }
 
+  function isPRPage() {
+    return /\/pull\/\d+/.test(location.pathname);
+  }
+
   function injectAll() {
+    if (!isPRPage()) return;
     // New GitHub React UI: comment bodies carry a [comment-testid] attribute
     document
       .querySelectorAll(`[comment-testid]:not([${PROCESSED_ATTR}])`)
