@@ -1,0 +1,15 @@
+{
+  "name": "pr-to-agent",
+  "version": "1.0.0",
+  "description": "Chrome extension that adds a \"Send to Agent\" button to GitHub PR comments, copying the comment, diff, and PR context as a formatted prompt to your clipboard.",
+  "license": "MIT",
+  "author": "",
+  "type": "commonjs",
+  "main": "content.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "devDependencies": {
+    "prettier": "3.8.1"
+  }
+}
