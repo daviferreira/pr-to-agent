@@ -105,11 +105,12 @@
     // Walk up to the thread container and search downward.
     if (!table) {
       const threadContainer = commentBodyEl.closest(
-        "details, .review-thread-component, .js-resolvable-timeline-thread-container"
+        "details, .review-thread-component, .js-resolvable-timeline-thread-container",
       );
-      table = threadContainer?.querySelector(
-        "table[aria-label^=\"Diff for:\"], table.diff-table"
-      ) || null;
+      table =
+        threadContainer?.querySelector(
+          'table[aria-label^="Diff for:"], table.diff-table',
+        ) || null;
     }
 
     if (!table) return "";
@@ -118,7 +119,10 @@
     // Rows are tr.diff-line-row; inline comment lives inside the same td
     // as the commented line.
     if (table.getAttribute("aria-label")?.startsWith("Diff for: ")) {
-      const fileName = table.getAttribute("aria-label").slice("Diff for: ".length).trim();
+      const fileName = table
+        .getAttribute("aria-label")
+        .slice("Diff for: ".length)
+        .trim();
       const commentRow = commentBodyEl.closest("tr");
       const lines = [];
 
@@ -144,7 +148,7 @@
     // Code cells: td.blob-code-addition/deletion/context + span.blob-code-inner.
     if (table.classList.contains("diff-table")) {
       const threadContainer = commentBodyEl.closest(
-        "details, .review-thread-component, .js-resolvable-timeline-thread-container"
+        "details, .review-thread-component, .js-resolvable-timeline-thread-container",
       );
       const fileName =
         table.closest(".file")?.getAttribute("data-tagsearch-path") ||
@@ -158,7 +162,7 @@
         if (row.querySelector("td.blob-code-hunk")) continue;
 
         const codeCell = row.querySelector(
-          "td.blob-code:not(.blob-code-hunk):not(.blob-code-empty):not(.empty-cell)"
+          "td.blob-code:not(.blob-code-hunk):not(.blob-code-empty):not(.empty-cell)",
         );
         if (!codeCell) continue;
 
@@ -167,7 +171,8 @@
 
         let prefix = " ";
         if (codeCell.classList.contains("blob-code-addition")) prefix = "+";
-        else if (codeCell.classList.contains("blob-code-deletion")) prefix = "-";
+        else if (codeCell.classList.contains("blob-code-deletion"))
+          prefix = "-";
 
         lines.push(prefix + inner.textContent.trim());
       }
@@ -239,12 +244,13 @@
 
     // Skip the PR description — it's the source, not a review comment.
     // Legacy: lives inside div#pullrequest-{id}
-    if (commentBodyEl.closest("[id^=\"pullrequest-\"]")) return;
+    if (commentBodyEl.closest('[id^="pullrequest-"]')) return;
     // React: the PR body is the first [comment-testid*="IC_"] on the page
     if (
       commentBodyEl.getAttribute("comment-testid")?.includes("IC_") &&
-      commentBodyEl === document.querySelector("[comment-testid*=\"IC_\"]")
-    ) return;
+      commentBodyEl === document.querySelector('[comment-testid*="IC_"]')
+    )
+      return;
 
     commentBodyEl.setAttribute(PROCESSED_ATTR, "1");
 
@@ -257,7 +263,9 @@
     // Walk up to the BodyHTMLContainer then look for the reactions toolbar.
     const bodyContainer = commentBodyEl.parentElement;
     const reactionsToolbar = bodyContainer
-      ? bodyContainer.querySelector('div[role="toolbar"][aria-label="Reactions"]')
+      ? bodyContainer.querySelector(
+          'div[role="toolbar"][aria-label="Reactions"]',
+        )
       : null;
 
     if (reactionsToolbar) {
@@ -288,7 +296,9 @@
     // Legacy GitHub: .comment-body class
     // Exclude .js-preview-body (the "Nothing to preview" pane in reply forms)
     document
-      .querySelectorAll(`.comment-body:not(.js-preview-body):not([${PROCESSED_ATTR}])`)
+      .querySelectorAll(
+        `.comment-body:not(.js-preview-body):not([${PROCESSED_ATTR}])`,
+      )
       .forEach(tryInject);
   }
 
