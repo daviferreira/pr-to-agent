@@ -314,17 +314,25 @@
     });
   }
 
+  // Run injectAll immediately, then retry at increasing intervals to catch
+  // comments loaded lazily via <include-fragment> after turbo navigation.
+  function injectWithRetries() {
+    injectAll();
+    [300, 800, 2000].forEach((delay) => setTimeout(injectAll, delay));
+  }
+
+  // Create the observer once — never re-create it on SPA navigation.
+  const observer = new MutationObserver(scheduleInject);
+
   function init() {
     injectStyles();
-    injectAll();
-
-    const observer = new MutationObserver(scheduleInject);
+    injectWithRetries();
     observer.observe(document.body, { childList: true, subtree: true });
   }
 
-  document.addEventListener("turbo:load", init);
-  document.addEventListener("turbo:render", injectAll);
-  document.addEventListener("pjax:end", init);
+  document.addEventListener("turbo:load", injectWithRetries);
+  document.addEventListener("turbo:render", injectWithRetries);
+  document.addEventListener("pjax:end", injectWithRetries);
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", init);
