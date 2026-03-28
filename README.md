@@ -6,10 +6,22 @@ A Chrome extension that injects a **"Copy as prompt"** button into GitHub PR com
 
 ## Installation
 
+### Load unpacked (development / personal use)
+
 1. Clone or download this repo
 2. Open Chrome and go to `chrome://extensions`
 3. Enable **Developer mode** (top right)
 4. Click **Load unpacked** and select the repo folder
+
+### Chrome Web Store
+
+Coming soon.
+
+### Pack locally (.crx)
+
+1. Go to `chrome://extensions` and enable **Developer mode**
+2. Click **Pack extension** and select the repo folder
+3. Chrome produces a `.crx` file and a `.pem` key — keep the `.pem` safe, you'll need it to sign future updates
 
 ## Usage
 
