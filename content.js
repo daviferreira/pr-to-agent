@@ -72,20 +72,28 @@
   // ── Context extraction ────────────────────────────────────────────────────
 
   function getPRTitle() {
-    // Works on both legacy and React-based GitHub PR pages
+    // document.title is always: "PR title · Pull Request #N · owner/repo · GitHub"
+    const parts = document.title.split(" · ");
+    if (parts.length >= 2 && parts[1].startsWith("Pull Request")) {
+      return parts[0].trim();
+    }
+    // Fallback for legacy page structure
     const el =
       document.querySelector("h1.gh-header-title .js-issue-title") ||
-      document.querySelector("h1.gh-header-title") ||
-      document.querySelector("[data-testid='pr-header-title']") ||
-      document.querySelector("h1");
+      document.querySelector("h1.gh-header-title");
     return el ? el.textContent.trim() : document.title;
   }
 
   function getPRDescription() {
-    // New GitHub: first [comment-testid] in the page is the PR description
+    // In GitHub's React UI, comment-testid values are prefixed by type:
+    //   IC_   = Issue Comment (PR description + general thread comments)
+    //   PRRC_ = Pull Request Review Comment (inline diff comments)
+    // The PR body is always the first IC_ comment on the page.
     const el =
-      document.querySelector("[comment-testid]") ||
-      document.querySelector(".comment-body");
+      document.querySelector('[comment-testid*="IC_"]') ||
+      // Legacy GitHub fallback
+      document.querySelector(".js-comment-container .comment-body") ||
+      document.querySelector(".timeline-comment .comment-body");
     return el ? el.innerText.trim() : "";
   }
 
@@ -122,17 +130,16 @@
   // ── Prompt formatting ─────────────────────────────────────────────────────
 
   function buildPrompt(title, description, diff, comment) {
-    return (
-      "You are reviewing a GitHub Pull Request.\n\n" +
-      `PR Title: ${title}\n\n` +
-      "PR Description:\n" +
-      `${description}\n\n` +
-      "Code Diff:\n" +
-      `${diff || "(no diff context available)"}\n\n` +
-      "Review Comment:\n" +
-      `${comment}\n\n` +
-      "Please help me address this review comment."
-    );
+    const parts = [`PR Title: ${title}`];
+    if (description) {
+      parts.push(`PR Description:\n${description}`);
+    }
+    if (diff) {
+      parts.push(`Code Diff:\n${diff}`);
+    }
+    parts.push(`Review Comment:\n${comment}`);
+    parts.push("Please help me address this review comment.");
+    return parts.join("\n\n");
   }
 
   // ── Button ────────────────────────────────────────────────────────────────
