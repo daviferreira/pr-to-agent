@@ -6,7 +6,11 @@
   "author": "",
   "type": "module",
   "scripts": {
-    "test": "eslint . && prettier --check ."
+    "lint:es": "eslint .",
+    "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
+    "lint": "npm run lint:es && npm run format:check",
+    "test": "npm run lint"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
