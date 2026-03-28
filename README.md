@@ -4,7 +4,7 @@
 
 A Chrome extension that injects a **"Copy as prompt"** button into GitHub PR comments.
 
-![Screenshot](screenshot.png) One click collects the PR title, description, diff hunk, and comment text into a structured prompt and copies it to your clipboard — ready to paste into Claude, ChatGPT, or any other agent.
+![Screenshot](screenshot.png) One click collects the PR title, description, diff hunk, and comment text into a structured prompt and copies it to your clipboard — ready to paste into Claude, Cursor, or any other agent.
 
 ## Installation
 
