@@ -99,43 +99,66 @@
   }
 
   function getDiffHunk(commentBodyEl) {
-    // GitHub's React diff: table[aria-label="Diff for: <filename>"]
-    // Each code row is tr.diff-line-row; the inline comment lives inside
-    // the same td as the commented line, not in a separate row.
     const table = commentBodyEl.closest("table");
     if (!table) return "";
 
-    // Filename from aria-label: "Diff for: path/to/file"
-    const ariaLabel = table.getAttribute("aria-label") || "";
-    const fileName = ariaLabel.startsWith("Diff for: ")
-      ? ariaLabel.slice("Diff for: ".length).trim()
-      : "";
+    // ── React (new) diff: table[aria-label="Diff for: <file>"] ───────────
+    // Rows are tr.diff-line-row; inline comment lives inside the same td
+    // as the commented line.
+    if (table.getAttribute("aria-label")?.startsWith("Diff for: ")) {
+      const fileName = table.getAttribute("aria-label").slice("Diff for: ".length).trim();
+      const commentRow = commentBodyEl.closest("tr");
+      const lines = [];
 
-    const commentRow = commentBodyEl.closest("tr");
-    const lines = [];
+      for (const row of table.querySelectorAll("tr.diff-line-row")) {
+        if (row.querySelector("td.diff-hunk-cell")) continue;
+        const codeEl = row.querySelector("code.diff-text:not(.hunk)");
+        if (!codeEl) continue;
+        const inner = codeEl.querySelector(".diff-text-inner");
+        if (!inner) continue;
+        let prefix = " ";
+        if (codeEl.classList.contains("addition")) prefix = "+";
+        else if (codeEl.classList.contains("deletion")) prefix = "-";
+        lines.push(prefix + inner.textContent);
+        if (row === commentRow || row.contains(commentBodyEl)) break;
+      }
 
-    for (const row of table.querySelectorAll("tr.diff-line-row")) {
-      // Skip hunk-header rows (contain the @@ line, not code)
-      if (row.querySelector("td.diff-hunk-cell")) continue;
-
-      const codeEl = row.querySelector("code.diff-text:not(.hunk)");
-      if (!codeEl) continue;
-
-      const inner = codeEl.querySelector(".diff-text-inner");
-      if (!inner) continue;
-
-      let prefix = " ";
-      if (codeEl.classList.contains("addition")) prefix = "+";
-      else if (codeEl.classList.contains("deletion")) prefix = "-";
-
-      lines.push(prefix + inner.textContent);
-
-      // Include the commented-on line itself, then stop
-      if (row === commentRow || row.contains(commentBodyEl)) break;
+      const code = lines.slice(-30).join("\n");
+      return fileName ? `File: ${fileName}\n${code}` : code;
     }
 
-    const code = lines.slice(-30).join("\n");
-    return fileName ? `File: ${fileName}\n${code}` : code;
+    // ── Classic diff: table.diff-table ────────────────────────────────────
+    // Rows are plain tr; inline comments are in a separate tr.inline-comments.
+    // Code cells: td.blob-code-addition/deletion/context + span.blob-code-inner.
+    if (table.classList.contains("diff-table")) {
+      const fileName = table.closest(".file")?.getAttribute("data-tagsearch-path") || "";
+      const commentRow = commentBodyEl.closest("tr.inline-comments");
+      const lines = [];
+
+      for (const row of table.querySelectorAll("tr")) {
+        if (row === commentRow) break;
+        if (row.querySelector("td.blob-code-hunk")) continue;
+
+        const codeCell = row.querySelector(
+          "td.blob-code:not(.blob-code-hunk):not(.blob-code-empty):not(.empty-cell)"
+        );
+        if (!codeCell) continue;
+
+        const inner = codeCell.querySelector(".blob-code-inner");
+        if (!inner) continue;
+
+        let prefix = " ";
+        if (codeCell.classList.contains("blob-code-addition")) prefix = "+";
+        else if (codeCell.classList.contains("blob-code-deletion")) prefix = "-";
+
+        lines.push(prefix + inner.textContent.trim());
+      }
+
+      const code = lines.slice(-30).join("\n");
+      return fileName ? `File: ${fileName}\n${code}` : code;
+    }
+
+    return "";
   }
 
   // ── Prompt formatting ─────────────────────────────────────────────────────
@@ -235,8 +258,9 @@
       .forEach(tryInject);
 
     // Legacy GitHub: .comment-body class
+    // Exclude .js-preview-body (the "Nothing to preview" pane in reply forms)
     document
-      .querySelectorAll(`.comment-body:not([${PROCESSED_ATTR}])`)
+      .querySelectorAll(`.comment-body:not(.js-preview-body):not([${PROCESSED_ATTR}])`)
       .forEach(tryInject);
   }
 
