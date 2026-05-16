@@ -152,7 +152,9 @@
       );
       const fileName =
         table.closest(".file")?.getAttribute("data-tagsearch-path") ||
-        threadContainer?.querySelector("summary a")?.textContent.trim() ||
+        threadContainer
+          ?.querySelector('summary a, a[href*="#diff-"]')
+          ?.textContent.trim() ||
         "";
       const commentRow = commentBodyEl.closest("tr.inline-comments");
       const lines = [];
